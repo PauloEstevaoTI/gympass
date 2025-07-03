@@ -1,13 +1,16 @@
-//import { PrismaUsersRepository } from "./../../repositories/prisma-users-repository";
-import { prisma } from "@/lib/prisma";
 import { UsersRepository } from "@/repositories/users-repository";
 import { hash } from "bcryptjs";
 import { UserAlreadyExistsError } from "./errors/user-already-exists";
+import { User } from "@prisma/client";
 
 interface RegisterServiceRequest {
   name: string; // User's name
   email: string; // User's email
   password: string; // User's password
+}
+
+interface RegisterServiceResponse {
+  user: User;
 }
 
 // SOLID principle: Single Responsibility Principle
@@ -21,7 +24,11 @@ export class RegisterService {
     this.usersRepository = usersRepository;
   }
 
-  async execute({ name, email, password }: RegisterServiceRequest) {
+  async execute({
+    name,
+    email,
+    password,
+  }: RegisterServiceRequest): Promise<RegisterServiceResponse> {
     const password_hash = await hash(password, 6);
 
     const userWithSameEmail = await this.usersRepository.findByEmail(email);
@@ -30,10 +37,14 @@ export class RegisterService {
       throw new UserAlreadyExistsError();
     }
 
-    await this.usersRepository.create({
+    const user = await this.usersRepository.create({
       name,
       email,
       password_hash,
     });
+
+    return {
+      user,
+    };
   }
 }
